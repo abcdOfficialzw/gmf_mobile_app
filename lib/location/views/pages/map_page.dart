@@ -39,6 +39,10 @@ class _MapPageState extends State<MapPage> {
             title: point.monumentName!,
             snippet: 'Condition: ${point.condition}',
           ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+              (point.monumentName!.toLowerCase().contains("tsm"))
+                  ? BitmapDescriptor.hueBlue
+                  : BitmapDescriptor.hueRed),
         );
         _markers[point.id!] = marker;
       }

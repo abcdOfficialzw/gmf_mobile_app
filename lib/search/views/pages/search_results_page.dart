@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:geodetic_monument_finder/search/views/pages/search_page.dart';
+import 'package:geodetic_monument_finder/utils/widgets/expanded_primary_button.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../../services/networking_service.dart';
+import '../../../utils/constants/app_urls.dart';
 import '../../../utils/constants/dimens.dart';
 import '../../state/search/bloc.dart';
 import '../../state/search/event.dart';
@@ -152,19 +155,86 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                             SizedBox(
                               width: Dimens.spacing.normal,
                             ),
-                            if (state.result.toJson()["condition"] != "GOOD")
-                              FilledButton(
-                                style: ButtonStyle(
-                                    backgroundColor: MaterialStateProperty.all(
-                                        Theme.of(context).colorScheme.error)),
-                                onPressed: () {
-                                  launchUrlString("tel://263719412652");
-                                  // Navigator.of(context).push(MaterialPageRoute(
-                                  //     builder: (context) => SearchPage()));
-                                },
-                                child: Text(
-                                    "Report ${state.result.toJson()["condition"]}"),
-                              ),
+                            FilledButton(
+                              style: ButtonStyle(
+                                  backgroundColor: MaterialStateProperty.all(
+                                      Theme.of(context).colorScheme.error)),
+                              onPressed: () {
+                                reportMonument({
+                                  required String condition,
+                                  required String monumentId,
+                                }) {
+                                  NetworkingService().makeHttpCall(
+                                    method: "POST",
+                                    url: "${AppUrls.BASE_URL}/reports",
+                                    body: {
+                                      "condition": condition,
+                                      "monument_id": monumentId,
+                                    },
+                                  ).then((value) {
+                                    Navigator.of(context).pop();
+
+                                    if (value.status == "success") {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                              backgroundColor: Colors.green,
+                                              content: Text(value.message!)));
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                              backgroundColor: Colors.red,
+                                              content: Text(value.message!)));
+                                    }
+                                  });
+                                }
+
+                                showModalBottomSheet(
+                                    showDragHandle: true,
+                                    context: context,
+                                    builder: (context) => Container(
+                                          padding: EdgeInsets.all(
+                                              Dimens.padding.normal),
+                                          child: Column(
+                                            children: [
+                                              const Padding(
+                                                padding: EdgeInsets.all(8.0),
+                                                child: Text(
+                                                  "If you notice that the condition of the monument is not as stated, you can report the condition to the admin.",
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                height: Dimens.spacing.normal,
+                                              ),
+                                              ExpandedPrimaryButton(
+                                                  "Report Damaged Monument",
+                                                  backgroundColor: Colors.red,
+                                                  borderColor: Colors.red,
+                                                  onPressed: () {
+                                                reportMonument(
+                                                    condition: "DAMAGED",
+                                                    monumentId: state.result.id
+                                                        .toString());
+                                              }),
+                                              SizedBox(
+                                                height: Dimens.spacing.normal,
+                                              ),
+                                              ExpandedPrimaryButton(
+                                                  "Report Missing Monument",
+                                                  backgroundColor: Colors.amber,
+                                                  borderColor: Colors.amber,
+                                                  onPressed: () {
+                                                reportMonument(
+                                                    condition: "MISSING",
+                                                    monumentId: state.result.id
+                                                        .toString());
+                                              }),
+                                            ],
+                                          ),
+                                        ));
+                              },
+                              child: const Text("Report Condition"),
+                            ),
                           ],
                         ),
                       ),
